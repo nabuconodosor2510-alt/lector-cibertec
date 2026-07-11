@@ -32,7 +32,7 @@
   <script>
     let html5QrCode;
     let escaneando = true;
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxA0nf6p0fbPymRCcyADCfQCiXiPsUQWNQGePbjcN3k49Yk0fng5D-LaCKM7ZDC3cXQTA/exec"; 
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwpIlMdxRSYunREK-hICbOs0Xeb9OugxBK4W8m8ioDtJS4Kfqufz5WKcRqUl0oUXicN1A/exec"; 
 
     function arrancarCamara() {
       html5QrCode = new Html5Qrcode("reader");
@@ -58,27 +58,23 @@
 
         // 2. Realizamos la petición
         fetch(WEB_APP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: decodedText
-        })
-        .then(() => {
-          statusPanel.className = "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
-          statusPanel.innerHTML = `<i class="fa-solid fa-circle-check text-3xl"></i> <span>PROCESADO</span>`;
-          setTimeout(() => {
-            arrancarCamara(); // Volvemos a iniciar la cámara
-            reiniciarLector();
-          }, 3000);
-        })
-        .catch(() => {
-          statusPanel.className = "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
-          statusPanel.innerHTML = `Error de conexión`;
-          setTimeout(() => {
-            arrancarCamara(); // Volvemos a iniciar la cámara
-            reiniciarLector();
-          }, 3000);
-        });
-      });
+  method: "POST",
+  mode: "cors", // Cambiamos de no-cors a cors para recibir respuesta
+  body: decodedText
+})
+.then(response => response.json()) // Ahora sí leemos lo que el script responde
+.then(data => {
+  statusPanel.className = data.acceso 
+    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2"
+    : "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+  
+  statusPanel.innerHTML = `<i class="fa-solid ${data.acceso ? 'fa-circle-check' : 'fa-circle-xmark'} text-3xl"></i> <span>${data.mensaje}</span>`;
+  
+  setTimeout(() => {
+    arrancarCamara();
+    reiniciarLector();
+  }, 3000);
+})
     }
 
     function reiniciarLector() {
