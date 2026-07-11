@@ -49,32 +49,48 @@
       if (!escaneando) return;
       escaneando = false;
 
-      // 1. Detenemos la cámara ANTES de hacer la petición para evitar conflictos
+      // 1. Detenemos la cámara primero
       html5QrCode.stop().then(() => {
-        
         const statusPanel = document.getElementById('statusPanel');
-        document.getElementById('laser').classList.add('hidden');
-        statusPanel.innerHTML = `Validando...`;
+        statusPanel.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-2"></i> Validando...`;
 
-        // 2. Realizamos la petición
+        // 2. Realizamos el fetch con tiempo de espera (timeout)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos máximo
+
         fetch(WEB_APP_URL, {
-  method: "POST",
-  mode: "cors", // Cambiamos de no-cors a cors para recibir respuesta
-  body: decodedText
-})
-.then(response => response.json()) // Ahora sí leemos lo que el script responde
-.then(data => {
-  statusPanel.className = data.acceso 
-    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2"
-    : "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
-  
-  statusPanel.innerHTML = `<i class="fa-solid ${data.acceso ? 'fa-circle-check' : 'fa-circle-xmark'} text-3xl"></i> <span>${data.mensaje}</span>`;
-  
-  setTimeout(() => {
-    arrancarCamara();
-    reiniciarLector();
-  }, 3000);
-})
+          method: "POST",
+          mode: "cors",
+          body: decodedText,
+          signal: controller.signal
+        })
+        .then(response => response.json())
+        .then(data => {
+          clearTimeout(timeoutId);
+          // Actualizamos según la respuesta real
+          statusPanel.className = data.acceso 
+            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2"
+            : "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+          
+          statusPanel.innerHTML = `<i class="fa-solid ${data.acceso ? 'fa-circle-check' : 'fa-circle-xmark'} text-3xl"></i> <span>${data.mensaje}</span>`;
+          
+          // Reinicio programado
+          setTimeout(() => {
+            arrancarCamara();
+            reiniciarLector();
+          }, 3000);
+        })
+        .catch(err => {
+          statusPanel.className = "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+          statusPanel.innerHTML = `Error: ${err.name === 'AbortError' ? 'Tiempo agotado' : 'Conexión fallida'}`;
+          setTimeout(() => {
+            arrancarCamara();
+            reiniciarLector();
+          }, 3000);
+        });
+      }).catch(err => {
+        console.error("No se pudo detener la cámara:", err);
+      });
     }
 
     function reiniciarLector() {
