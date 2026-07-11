@@ -44,43 +44,24 @@
           document.getElementById('statusPanel').innerHTML = `Error al acceder a la cámara.`;
         });
     }
-
-    function onScanSuccess(decodedText) {
+function onScanSuccess(decodedText) {
       if (!escaneando) return;
       escaneando = false;
 
-      // Mostramos "Procesando" pero NO detenemos la cámara
       const statusPanel = document.getElementById('statusPanel');
-      statusPanel.innerHTML = `Validando QR...`;
+      statusPanel.innerHTML = `Validando...`;
 
-      // ENVIAR DATO SIN BLOQUEAR:
-      // Esto dispara el registro en el Sheet sin esperar respuesta
-      new Image().src = WEB_APP_URL + "?data=" + encodeURIComponent(decodedText);
+      // Usamos el método de la imagen para que NO bloquee nada
+      // Esto dispara la validación en Google Sheets sin pedir permiso al navegador
+      var img = new Image();
+      img.src = WEB_APP_URL + "?data=" + encodeURIComponent(decodedText);
 
-      // Damos un tiempo visual y permitimos escanear de nuevo
+      // Esperamos 2 segundos para dar feedback visual y volvemos a permitir escanear
       setTimeout(() => {
-        statusPanel.innerHTML = `QR Procesado. Escanea otro.`;
-        escaneando = true; // Volvemos a activar la lectura inmediatamente
+        statusPanel.innerHTML = `Listo. Escanea otro QR.`;
+        escaneando = true;
       }, 2000);
     }
-        // Inyectamos el script para llamar a Google Sheets sin CORS
-        var script = document.createElement('script');
-        script.src = WEB_APP_URL + "?data=" + encodeURIComponent(decodedText);
-        document.body.appendChild(script);
-      });
-    }
-        })
-        .catch(err => {
-          statusPanel.className = "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
-          statusPanel.innerHTML = `Error: ${err.name === 'AbortError' ? 'Tiempo agotado' : 'Conexión fallida'}`;
-          setTimeout(() => {
-            arrancarCamara();
-            reiniciarLector();
-          }, 3000);
-        });
-      }).catch(err => {
-        console.error("No se pudo detener la cámara:", err);
-      });
     }
 
     function reiniciarLector() {
