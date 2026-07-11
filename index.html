@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lector de Puerta Cibertec</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    @keyframes laserMove { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+    .laser-line { position: absolute; left: 0; width: 100%; height: 4px; background-color: #ef4444; box-shadow: 0 0 14px 4px rgba(239, 68, 68, 0.8); z-index: 50; animation: laserMove 2s infinite linear; }
+    #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; border-radius: 1rem; }
+  </style>
+</head>
+<body class="bg-slate-900 flex flex-col items-center justify-center min-h-screen p-4 font-sans antialiased">
+
+  <div class="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-gray-100">
+    <div class="text-xs font-black text-blue-900 tracking-widest uppercase mb-1">CIBERTEC ACCESOS</div>
+    <h1 class="text-lg font-bold text-slate-800 mb-4">Lector de Puerta en Vivo</h1>
+
+    <div class="relative bg-black rounded-2xl overflow-hidden aspect-square flex items-center justify-center mb-4 shadow-inner border-4 border-slate-800">
+      <div id="laser" class="laser-line"></div>
+      <div id="reader" class="w-full h-full"></div>
+    </div>
+
+    <div id="statusPanel" class="bg-slate-50 p-4 rounded-2xl border border-gray-100 text-sm font-bold text-slate-500">
+      <i class="fa-solid fa-camera animate-pulse text-blue-500 mr-2"></i> Iniciando cámara...
+    </div>
+  </div>
+
+  <script>
+    let html5QrCode;
+    let escaneando = true;
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxPcsLYQrlFD3RTaMn1J_27cShnUWnLHiosnrNnGkEFaouQbqADL6PKSPo3AugPQJwV1g/exec"; 
+
+    function arrancarCamara() {
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess)
+        .then(() => {
+          document.getElementById('statusPanel').innerHTML = `<i class="fa-solid fa-expand animate-pulse text-emerald-500 mr-2"></i> Apunte hacia un QR`;
+        })
+        .catch(() => {
+          document.getElementById('statusPanel').innerHTML = `Error al acceder a la cámara.`;
+        });
+    }
+
+    function onScanSuccess(decodedText) {
+      if (!escaneando) return;
+      escaneando = false;
+
+      const statusPanel = document.getElementById('statusPanel');
+      document.getElementById('laser').classList.add('hidden');
+      statusPanel.innerHTML = `Validando...`;
+
+      fetch(WEB_APP_URL, {
+        method: "POST",
+        mode: "cors",
+        body: decodedText
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.acceso === true) {
+          statusPanel.className = "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+          statusPanel.innerHTML = `<i class="fa-solid fa-circle-check text-3xl"></i> <span>${data.mensaje}</span>`;
+        } else {
+          statusPanel.className = "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+          statusPanel.innerHTML = `<i class="fa-solid fa-circle-xmark text-3xl"></i> <span>${data.mensaje}</span>`;
+        }
+        setTimeout(reiniciarLector, 3000);
+      })
+      .catch(() => {
+        statusPanel.innerHTML = `Error de conexión`;
+        setTimeout(reiniciarLector, 3000);
+      });
+    }
+
+    function reiniciarLector() {
+      const statusPanel = document.getElementById('statusPanel');
+      statusPanel.className = "bg-slate-50 p-4 rounded-2xl border border-gray-100 text-sm font-bold text-slate-500";
+      statusPanel.innerHTML = `<i class="fa-solid fa-expand animate-pulse text-emerald-500 mr-2"></i> Apunte hacia un QR`;
+      document.getElementById('laser').classList.remove('hidden');
+      escaneando = true;
+    }
+
+    window.addEventListener('DOMContentLoaded', arrancarCamara);
+  </script>
+</body>
+</html>
