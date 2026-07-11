@@ -11,10 +11,20 @@
     @keyframes laserMove { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
     .laser-line { position: absolute; left: 0; width: 100%; height: 4px; background-color: #ef4444; box-shadow: 0 0 14px 4px rgba(239, 68, 68, 0.8); z-index: 50; animation: laserMove 2s infinite linear; }
     #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; border-radius: 1rem; }
+  #bloqueo {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: none; justify-content: center; align-items: center;
+    z-index: 9999; font-weight: bold;
+  }
   </style>
 </head>
 <body class="bg-slate-900 flex flex-col items-center justify-center min-h-screen p-4 font-sans antialiased">
-
+<div id="bloqueo">
+    <div class="bg-white p-6 rounded-2xl shadow-xl">
+      <i class="fa-solid fa-spinner animate-spin text-2xl mr-2"></i> Procesando...
+    </div>
+  </div>
   <div class="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-sm text-center border border-gray-100">
     <div class="text-xs font-black text-blue-900 tracking-widest uppercase mb-1">CIBERTEC ACCESOS</div>
     <h1 class="text-lg font-bold text-slate-800 mb-4">Lector de Puerta en Vivo</h1>
@@ -55,38 +65,36 @@
         });
     }
 async function onScanSuccess(decodedText) {
-  if (!escaneando) return;
-  escaneando = false;
+    if (!escaneando) return;
+    escaneando = false;
 
-  const statusPanel = document.getElementById('statusPanel');
-  statusPanel.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Validando...`;
+    // Activamos el bloqueo visual
+    document.getElementById('bloqueo').style.display = 'flex'; 
 
-  try {
-    // Usamos fetch normal, pero manejamos el resultado como una promesa
-    const response = await fetch(WEB_APP_URL + "?data=" + encodeURIComponent(decodedText));
-    const data = await response.json(); // Esperamos la respuesta real del servidor
+    const statusPanel = document.getElementById('statusPanel');
 
-    // Aplicamos el color basado en si data.acceso es true o false
-    if (data.acceso) {
-      statusPanel.className = "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
-    } else {
+    try {
+      const response = await fetch(WEB_APP_URL + "?data=" + encodeURIComponent(decodedText));
+      const data = await response.json();
+
+      statusPanel.className = data.acceso 
+        ? "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2"
+        : "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+      statusPanel.innerHTML = `<span>${data.mensaje}</span>`;
+    } catch (err) {
       statusPanel.className = "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+      statusPanel.innerHTML = `<span>Error de conexión</span>`;
+    } finally {
+      // Desbloqueamos siempre al terminar
+      document.getElementById('bloqueo').style.display = 'none';
+      
+      setTimeout(() => {
+        statusPanel.className = "bg-slate-50 p-4 rounded-2xl border border-gray-100 text-sm font-bold text-slate-500";
+        statusPanel.innerHTML = `<i class="fa-solid fa-expand animate-pulse text-emerald-500 mr-2"></i> Apunte hacia un QR`;
+        escaneando = true;
+      }, 3000);
     }
-    
-    statusPanel.innerHTML = `<span>${data.mensaje}</span>`;
-
-  } catch (err) {
-    statusPanel.className = "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
-    statusPanel.innerHTML = `Error de conexión`;
   }
-
-  // Esperamos 3 segundos antes de permitir escanear de nuevo
-  setTimeout(() => {
-    statusPanel.className = "bg-slate-50 p-4 rounded-2xl border border-gray-100 text-sm font-bold text-slate-500";
-    statusPanel.innerHTML = `<i class="fa-solid fa-expand animate-pulse text-emerald-500 mr-2"></i> Apunte hacia un QR`;
-    escaneando = true;
-  }, 3000);
-}
 
     function reiniciarLector() {
       const statusPanel = document.getElementById('statusPanel');
