@@ -102,6 +102,7 @@
         statusPanel.innerHTML = `Error de envío`;
         setTimeout(reiniciarLector, 3000);
       });
+    } // <--- ESTA LLAVE FALTABA PARA CERRAR onScanSuccess
 
     function reiniciarLector() {
       const statusPanel = document.getElementById('statusPanel');
@@ -114,5 +115,3 @@
 
     window.addEventListener('DOMContentLoaded', arrancarCamara);
   </script>
-</body>
-</html>
