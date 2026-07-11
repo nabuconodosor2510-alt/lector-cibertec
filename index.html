@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lector Cibertec</title>
+    <!-- Cargamos la librería para el escáner -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Cargamos Tailwind para que se vea bien -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-5">
+
+    <div id="statusPanel" class="p-4 rounded-xl border font-bold mb-4">
+        Esperando escaneo...
+    </div>
+
+    <!-- Este es el contenedor donde aparecerá la cámara -->
+    <div id="reader" class="w-full max-w-sm mx-auto"></div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxDvG3v-U4SjXTQV0oT40Bc9ftfU2OKH4Bsn3qEVEBHM0m0-RzsB9Eo23QYEhgdVyXT_w/exec";
+        const statusPanel = document.getElementById('statusPanel');
+
+        function onScanSuccess(decodedText) {
+            statusPanel.className = "bg-blue-50 text-blue-700 p-4 rounded-xl border border-blue-200 font-bold";
+            statusPanel.innerHTML = "Validando alumno...";
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "cors", 
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: decodedText.trim() })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.acceso === true) {
+                    statusPanel.innerHTML = "¡Acceso concedido!";
+                    statusPanel.className = "bg-green-100 text-green-700 p-4 rounded-xl border border-green-200 font-bold";
+                } else {
+                    statusPanel.innerHTML = "Error: " + data.mensaje;
+                    statusPanel.className = "bg-red-100 text-red-700 p-4 rounded-xl border border-red-200 font-bold";
+                }
+            })
+            .catch(error => {
+                statusPanel.innerHTML = "Error de conexión";
+                statusPanel.className = "bg-red-100 text-red-700 p-4 rounded-xl border border-red-200 font-bold";
+            });
+        }
+
+        // Inicializar el lector de forma manual (sin el diseño por defecto)
+const html5QrCode = new Html5Qrcode("reader");
+
+html5QrCode.start(
+  { facingMode: "environment" }, // Usa la cámara trasera
+  {
+    fps: 10,
+    qrbox: { width: 250, height: 250 }
+  },
+  (decodedText) => {
+    // Aquí ejecutas tu función de validación
+    onScanSuccess(decodedText);
+    // Detener el escaneo tras la lectura para no saturar
+    html5QrCode.stop();
+  },
+  (errorMessage) => {
+    // Aquí puedes ignorar los errores de escaneo constante
+  }
+).catch(err => {
+  statusPanel.innerHTML = "Error al abrir la cámara: " + err;
+});
