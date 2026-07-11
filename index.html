@@ -55,24 +55,23 @@
         });
     }
 function onScanSuccess(decodedText) {
-      if (!escaneando) return;
-      escaneando = false;
+  if (!escaneando) return; // Si ya está procesando, no hacer nada
+  escaneando = false;      // Bloqueamos la lectura
 
-      const statusPanel = document.getElementById('statusPanel');
-      statusPanel.innerHTML = `Validando...`;
+  const statusPanel = document.getElementById('statusPanel');
+  statusPanel.innerHTML = `Validando...`;
 
-      // Usamos el método de la imagen para que NO bloquee nada
-      // Esto dispara la validación en Google Sheets sin pedir permiso al navegador
-      var img = new Image();
-      img.src = WEB_APP_URL + "?data=" + encodeURIComponent(decodedText);
+  // Disparamos la validación
+  var img = new Image();
+  img.src = WEB_APP_URL + "?data=" + encodeURIComponent(decodedText);
 
-      // Esperamos 2 segundos para dar feedback visual y volvemos a permitir escanear
-      setTimeout(() => {
-        statusPanel.innerHTML = `Listo. Escanea otro QR.`;
-        escaneando = true;
-      }, 2000);
-    }
-    }
+  // Damos un tiempo de espera antes de volver a permitir otra lectura
+  // Esto es lo que evita que se lea el mismo código muchas veces
+  setTimeout(() => {
+    statusPanel.innerHTML = `Listo. Escanea otro QR.`;
+    escaneando = true; // Volvemos a abrir la puerta para una nueva lectura
+  }, 4000); // 4 segundos de espera son suficientes para que te alejes del QR
+}
 
     function reiniciarLector() {
       const statusPanel = document.getElementById('statusPanel');
