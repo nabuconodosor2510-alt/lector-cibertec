@@ -32,7 +32,7 @@
   <script>
     let html5QrCode;
     let escaneando = true;
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyH27empF_OOQJsk3VcKHsfo7mq6EU3GPcZsToQlWf1wS_wEAeKQ955AUGDCQe5QC-jRw/exec"; 
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyl-TuzKkawFykAn8XwD-5RB0yWR1DEXTntTG54cCM4_VUlM6jeWxv8E6g4fwK9iacrIQ/exec"; 
 
     function arrancarCamara() {
       // Limpiamos cualquier instancia previa si existe
@@ -54,23 +54,38 @@
           document.getElementById('statusPanel').innerHTML = `Cámara bloqueada o no encontrada. Permisos necesarios.`;
         });
     }
-function onScanSuccess(decodedText) {
-  if (!escaneando) return; // Si ya está procesando, no hacer nada
-  escaneando = false;      // Bloqueamos la lectura
+async function onScanSuccess(decodedText) {
+  if (!escaneando) return;
+  escaneando = false;
 
   const statusPanel = document.getElementById('statusPanel');
-  statusPanel.innerHTML = `Validando...`;
+  statusPanel.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Validando...`;
 
-  // Disparamos la validación
-  var img = new Image();
-  img.src = WEB_APP_URL + "?data=" + encodeURIComponent(decodedText);
+  try {
+    // Usamos fetch normal, pero manejamos el resultado como una promesa
+    const response = await fetch(WEB_APP_URL + "?data=" + encodeURIComponent(decodedText));
+    const data = await response.json(); // Esperamos la respuesta real del servidor
 
-  // Damos un tiempo de espera antes de volver a permitir otra lectura
-  // Esto es lo que evita que se lea el mismo código muchas veces
+    // Aplicamos el color basado en si data.acceso es true o false
+    if (data.acceso) {
+      statusPanel.className = "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+    } else {
+      statusPanel.className = "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+    }
+    
+    statusPanel.innerHTML = `<span>${data.mensaje}</span>`;
+
+  } catch (err) {
+    statusPanel.className = "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
+    statusPanel.innerHTML = `Error de conexión`;
+  }
+
+  // Esperamos 3 segundos antes de permitir escanear de nuevo
   setTimeout(() => {
-    statusPanel.innerHTML = `Listo. Escanea otro QR.`;
-    escaneando = true; // Volvemos a abrir la puerta para una nueva lectura
-  }, 4000); // 4 segundos de espera son suficientes para que te alejes del QR
+    statusPanel.className = "bg-slate-50 p-4 rounded-2xl border border-gray-100 text-sm font-bold text-slate-500";
+    statusPanel.innerHTML = `<i class="fa-solid fa-expand animate-pulse text-emerald-500 mr-2"></i> Apunte hacia un QR`;
+    escaneando = true;
+  }, 3000);
 }
 
     function reiniciarLector() {
