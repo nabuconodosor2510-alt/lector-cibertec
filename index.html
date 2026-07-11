@@ -32,7 +32,7 @@
   <script>
     let html5QrCode;
     let escaneando = true;
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby1pqU785eLwTK34svW9YRFq0sQwJDTJCzJO3Rl0BICb6puyOKwMYQ1AHCRi011m9LIRA/exec"; 
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyH27empF_OOQJsk3VcKHsfo7mq6EU3GPcZsToQlWf1wS_wEAeKQ955AUGDCQe5QC-jRw/exec"; 
 
     function arrancarCamara() {
       html5QrCode = new Html5Qrcode("reader");
@@ -49,21 +49,20 @@
       if (!escaneando) return;
       escaneando = false;
 
-      html5QrCode.stop().then(() => {
-        const statusPanel = document.getElementById('statusPanel');
-        statusPanel.innerHTML = `Validando...`;
+      // Mostramos "Procesando" pero NO detenemos la cámara
+      const statusPanel = document.getElementById('statusPanel');
+      statusPanel.innerHTML = `Validando QR...`;
 
-        // Creamos una función global para recibir la respuesta
-        window.callback = function(data) {
-          statusPanel.className = data.acceso 
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2"
-            : "bg-red-50 text-red-700 border border-red-200 p-5 rounded-2xl text-base font-black flex flex-col items-center gap-2";
-          
-          statusPanel.innerHTML = `<i class="fa-solid ${data.acceso ? 'fa-circle-check' : 'fa-circle-xmark'} text-3xl"></i> <span>${data.mensaje}</span>`;
-          
-          setTimeout(() => { arrancarCamara(); reiniciarLector(); }, 3000);
-        };
+      // ENVIAR DATO SIN BLOQUEAR:
+      // Esto dispara el registro en el Sheet sin esperar respuesta
+      new Image().src = WEB_APP_URL + "?data=" + encodeURIComponent(decodedText);
 
+      // Damos un tiempo visual y permitimos escanear de nuevo
+      setTimeout(() => {
+        statusPanel.innerHTML = `QR Procesado. Escanea otro.`;
+        escaneando = true; // Volvemos a activar la lectura inmediatamente
+      }, 2000);
+    }
         // Inyectamos el script para llamar a Google Sheets sin CORS
         var script = document.createElement('script');
         script.src = WEB_APP_URL + "?data=" + encodeURIComponent(decodedText);
