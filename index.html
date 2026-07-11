@@ -35,13 +35,23 @@
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyH27empF_OOQJsk3VcKHsfo7mq6EU3GPcZsToQlWf1wS_wEAeKQ955AUGDCQe5QC-jRw/exec"; 
 
     function arrancarCamara() {
+      // Limpiamos cualquier instancia previa si existe
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(err => console.log(err));
+      }
+
       html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess)
+      
+      // Aseguramos que la configuración sea compatible con móviles
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+      
+      html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
         .then(() => {
           document.getElementById('statusPanel').innerHTML = `<i class="fa-solid fa-expand animate-pulse text-emerald-500 mr-2"></i> Apunte hacia un QR`;
         })
-        .catch(() => {
-          document.getElementById('statusPanel').innerHTML = `Error al acceder a la cámara.`;
+        .catch(err => {
+          console.error(err);
+          document.getElementById('statusPanel').innerHTML = `Cámara bloqueada o no encontrada. Permisos necesarios.`;
         });
     }
 function onScanSuccess(decodedText) {
